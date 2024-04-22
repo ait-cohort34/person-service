@@ -91,6 +91,6 @@ public class PersonServiceImpl implements PersonService {
 
     @Override
     public Iterable<CityPopulationDto> getCitiesPopulation() {
-        return null;
+        return personRepository.getCitiesPopulation();
     }
 }
