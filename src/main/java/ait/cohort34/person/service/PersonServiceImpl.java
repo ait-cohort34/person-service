@@ -12,6 +12,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 @Service
 @RequiredArgsConstructor
 public class PersonServiceImpl implements PersonService {
@@ -19,6 +21,7 @@ public class PersonServiceImpl implements PersonService {
     final PersonRepository personRepository;
     final ModelMapper modelMapper;
 
+    @Transactional
     @Override
     public Boolean addPerson(PersonDto personDto) {
         if(personRepository.existsById(personDto.getId())){
@@ -34,6 +37,7 @@ public class PersonServiceImpl implements PersonService {
         return modelMapper.map(person, PersonDto.class);
     }
 
+    @Transactional
     @Override
     public PersonDto removePerson(Integer id) {
         Person person = personRepository.findById(id).orElseThrow(PersonNotFoundException::new);
@@ -59,19 +63,30 @@ public class PersonServiceImpl implements PersonService {
         return modelMapper.map(person, PersonDto.class);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public PersonDto[] findPersonsByCity(String city) {
-        return new PersonDto[0];
+        return personRepository.findByAddressCityIgnoreCase(city)
+                .map(p -> modelMapper.map(p, PersonDto.class))
+                .toArray(PersonDto[]::new);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public PersonDto[] findPersonsByName(String name) {
-        return new PersonDto[0];
+        return personRepository.findByNameIgnoreCase(name)
+                .map(p -> modelMapper.map(p, PersonDto.class))
+                .toArray(PersonDto[]::new);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public PersonDto[] findPersonsBetweenAge(Integer minAge, Integer maxAge) {
-        return new PersonDto[0];
+        LocalDate from = LocalDate.now().minusYears(maxAge);
+        LocalDate to = LocalDate.now().minusYears(minAge);
+        return personRepository.findByBirthDateBetween(from, to)
+                .map(p -> modelMapper.map(p, PersonDto.class))
+                .toArray(PersonDto[]::new);
     }
 
     @Override
