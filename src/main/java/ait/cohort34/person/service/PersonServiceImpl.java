@@ -1,9 +1,7 @@
 package ait.cohort34.person.service;
 
 import ait.cohort34.person.dao.PersonRepository;
-import ait.cohort34.person.dto.AddressDto;
-import ait.cohort34.person.dto.CityPopulationDto;
-import ait.cohort34.person.dto.PersonDto;
+import ait.cohort34.person.dto.*;
 import ait.cohort34.person.dto.exceptions.PersonNotFoundException;
 import ait.cohort34.person.model.Address;
 import ait.cohort34.person.model.Child;
@@ -23,21 +21,22 @@ public class PersonServiceImpl implements PersonService, CommandLineRunner {
 
     final PersonRepository personRepository;
     final ModelMapper modelMapper;
+    final PersonModelDtoMapper mapper;
 
     @Transactional
     @Override
     public Boolean addPerson(PersonDto personDto) {
-        if(personRepository.existsById(personDto.getId())){
+        if (personRepository.existsById(personDto.getId())) {
             return false;
         }
-        personRepository.save(modelMapper.map(personDto, Person.class));
+        personRepository.save(mapper.mapToModel(personDto));
         return true;
     }
 
     @Override
     public PersonDto findPersonById(Integer id) {
         Person person = personRepository.findById(id).orElseThrow(PersonNotFoundException::new);
-        return modelMapper.map(person, PersonDto.class);
+        return mapper.mapToDto(person);
     }
 
     @Transactional
@@ -45,7 +44,7 @@ public class PersonServiceImpl implements PersonService, CommandLineRunner {
     public PersonDto removePerson(Integer id) {
         Person person = personRepository.findById(id).orElseThrow(PersonNotFoundException::new);
         personRepository.delete(person);
-        return modelMapper.map(person, PersonDto.class);
+        return mapper.mapToDto(person);
     }
 
     @Transactional
@@ -53,8 +52,7 @@ public class PersonServiceImpl implements PersonService, CommandLineRunner {
     public PersonDto updatePersonName(Integer id, String name) {
         Person person = personRepository.findById(id).orElseThrow(PersonNotFoundException::new);
         person.setName(name);
-//        personRepository.save(person);
-        return modelMapper.map(person, PersonDto.class);
+        return mapper.mapToDto(person);
     }
 
     @Transactional
@@ -62,15 +60,14 @@ public class PersonServiceImpl implements PersonService, CommandLineRunner {
     public PersonDto updatePersonAddress(Integer id, AddressDto addressDto) {
         Person person = personRepository.findById(id).orElseThrow(PersonNotFoundException::new);
         person.setAddress(modelMapper.map(addressDto, Address.class));
-//        personRepository.save(person);
-        return modelMapper.map(person, PersonDto.class);
+        return mapper.mapToDto(person);
     }
 
     @Transactional(readOnly = true)
     @Override
     public PersonDto[] findPersonsByCity(String city) {
         return personRepository.findByAddressCityIgnoreCase(city)
-                .map(p -> modelMapper.map(p, PersonDto.class))
+                .map(mapper::mapToDto)
                 .toArray(PersonDto[]::new);
     }
 
@@ -78,7 +75,7 @@ public class PersonServiceImpl implements PersonService, CommandLineRunner {
     @Override
     public PersonDto[] findPersonsByName(String name) {
         return personRepository.findByNameIgnoreCase(name)
-                .map(p -> modelMapper.map(p, PersonDto.class))
+                .map(mapper::mapToDto)
                 .toArray(PersonDto[]::new);
     }
 
@@ -88,13 +85,29 @@ public class PersonServiceImpl implements PersonService, CommandLineRunner {
         LocalDate from = LocalDate.now().minusYears(maxAge);
         LocalDate to = LocalDate.now().minusYears(minAge);
         return personRepository.findByBirthDateBetween(from, to)
-                .map(p -> modelMapper.map(p, PersonDto.class))
+                .map(mapper::mapToDto)
                 .toArray(PersonDto[]::new);
     }
 
     @Override
     public Iterable<CityPopulationDto> getCitiesPopulation() {
         return personRepository.getCitiesPopulation();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public EmployeeDto[] findEmployeesBySalary(Integer min, Integer max) {
+        return personRepository.findEmployeesBySalaryBetween(min, max)
+                .map(e -> modelMapper.map(e, EmployeeDto.class))
+                .toArray(EmployeeDto[]::new);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public ChildDto[] getChildren() {
+        return personRepository.findChildrenBy()
+                .map(c -> modelMapper.map(c, ChildDto.class))
+                .toArray(ChildDto[]::new);
     }
 
     @Transactional
